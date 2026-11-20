@@ -14,22 +14,24 @@ class SSOAuthController extends Controller
 {
     public function __construct(
         private readonly SSOService $ssoService
-    ) {
-    }
+    ) {}
 
     /**
      * Mengarahkan pengguna ke endpoint otorisasi SSO dengan parameter klien aktif.
      */
-    public function redirectToSSO()
+    public function redirectToSSO(Request $request)
     {
+        $state = bin2hex(random_bytes(32));
+        $request->session()->put('sso_state', $state);
         $query = http_build_query([
+            'state' => $state,
             'client_id' => SSOConfigService::getClientId(),
             'redirect_uri' => SSOConfigService::getRedirect(),
             'response_type' => 'code',
             'scope' => 'user.profile',
         ]);
 
-        return redirect(rtrim((string) SSOConfigService::getUrl(), '/') . "/sso/redirect?{$query}");
+        return redirect(rtrim((string) SSOConfigService::getUrl(), '/')."/sso/redirect?{$query}");
     }
 
     /**
@@ -40,6 +42,9 @@ class SSOAuthController extends Controller
         $request->validate([
             'code' => ['required', 'string'],
         ]);
+
+        $expected = $request->session()->pull('sso_state');
+        abort_unless(is_string($expected) && is_string($request->input('state')) && hash_equals($expected, $request->input('state')), 403, 'Sesi SSO tidak valid. Ulangi login.');
 
         $ssoData = $this->ssoService->exchangeCodeForToken(
             $request->string('code')->toString(),

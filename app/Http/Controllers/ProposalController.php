@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\AuthorizesLppmProposalAccess;
+use App\Models\ActivityNotification;
+use App\Models\GrantCall;
 use App\Models\Proposal;
 use App\Support\LppmWorkspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Mengelola daftar, detail, dan pembuatan proposal di workspace LPPM.
@@ -61,19 +66,30 @@ class ProposalController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:100'],
+            'type' => ['required', Rule::in(['Penelitian Mandiri', 'Penelitian Hibah', 'Pengabdian Mandiri', 'Pengabdian Hibah'])],
             'scheme' => ['required', 'string', 'max:100'],
             'year' => ['required', 'digits:4'],
             'summary' => ['nullable', 'string'],
+            'grant_call_id' => ['nullable', 'exists:grant_calls,id'],
         ]);
 
-        Proposal::create($validated + [
+        $hibah = in_array($validated['type'], ['Penelitian Hibah', 'Pengabdian Hibah'], true);
+        if ($hibah) {
+            $call = GrantCall::find($validated['grant_call_id'] ?? null);
+            if (! $call || $call->purpose !== 'grant' || ! $call->isOpen()) {
+                throw ValidationException::withMessages(['grant_call_id' => 'Pilih periode hibah yang sedang dibuka.']);
+            }
+        } else {
+            unset($validated['grant_call_id']);
+        }
+        $proposal = Proposal::create($validated + [
+            'grant_stage' => $hibah ? 'draft' : null,
             'user_id' => Auth::id(),
-            'status' => $this->initialProposalStatus($request->user()),
-            'submitted_at' => $request->user()->hasLppmPermission('lppm.proposal.submit') ? now() : null,
+            'status' => $hibah ? 'draft' : $this->initialProposalStatus($request->user()),
+            'submitted_at' => ! $hibah && $request->user()->hasLppmPermission('lppm.proposal.submit') ? now() : null,
         ]);
 
-        return redirect()->route('proposals.index')->with('status', 'Proposal berhasil disimpan.');
+        return redirect()->route($hibah ? 'grants.show' : 'proposals.show', $proposal)->with('status', 'Proposal berhasil disimpan.');
     }
 
     /**
@@ -82,6 +98,9 @@ class ProposalController extends Controller
     public function show(Proposal $proposal)
     {
         $this->ensureUserCanAccessProposal($proposal);
+        if ($proposal->grant_stage) {
+            return redirect()->route('grants.show', $proposal);
+        }
 
         $user = auth()->user();
         $proposal->load([
@@ -105,6 +124,7 @@ class ProposalController extends Controller
 
     public function advance(Request $request, Proposal $proposal)
     {
+        abort_if($proposal->grant_stage !== null || in_array($proposal->type, ['Penelitian Hibah', 'Pengabdian Hibah'], true), 422, 'Gunakan alur hibah.');
         $this->ensureUserCanAccessProposal($proposal);
 
         $user = $request->user();
@@ -134,6 +154,35 @@ class ProposalController extends Controller
         return redirect()
             ->route('proposals.show', $proposal)
             ->with('status', $action['success_message']);
+    }
+
+    public function edit(Proposal $proposal)
+    {
+        abort_unless($proposal->user_id === auth()->id() && auth()->user()->hasLppmPermission('lppm.proposal.update') && in_array($proposal->grant_stage ?? $proposal->status, ['draft', 'revision']), 403);
+
+        return view('grants.edit', compact('proposal'));
+    }
+
+    public function update(Request $request, Proposal $proposal)
+    {
+        abort_unless($proposal->user_id === auth()->id() && $request->user()->hasLppmPermission('lppm.proposal.update') && in_array($proposal->grant_stage ?? $proposal->status, ['draft', 'revision']), 403);
+        $data = $request->validate(['title' => 'required|string|max:255', 'summary' => 'nullable|string', 'member_ids' => 'nullable|array', 'member_ids.*' => 'distinct|exists:users,user_id']);
+        DB::transaction(function () use ($proposal, $data, $request) {
+            $proposal = Proposal::whereKey($proposal->getKey())->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($proposal->grant_stage ?? $proposal->status, ['draft', 'revision']), 403);
+            $proposal->update(collect($data)->only(['title', 'summary'])->all());
+            $proposal->members()->delete();
+            foreach ($data['member_ids'] ?? [] as $id) {
+                if ($id !== $proposal->user_id) {
+                    $proposal->members()->create(['user_id' => $id, 'role' => 'anggota']);
+                }
+            }
+            if ($proposal->grant_stage) {
+                $proposal->grantRecords()->create(['actor_id' => $request->user()->user_id, 'kind' => 'edit', 'data' => ['title' => $proposal->title, 'summary' => $proposal->summary, 'member_ids' => $data['member_ids'] ?? []]]);
+            }
+        });
+
+        return redirect()->route('proposals.show', $proposal)->with('status', 'Perubahan proposal disimpan.');
     }
 
     private function initialProposalStatus($user): string
@@ -295,9 +344,9 @@ class ProposalController extends Controller
             return;
         }
 
-        \App\Models\ActivityNotification::create([
+        ActivityNotification::create([
             'user_id' => $proposal->user->user_id,
-            'message' => trim($action['label'] . ' untuk proposal "' . $proposal->title . '"' . ($note !== '' ? '. Catatan: ' . $note : '.')),
+            'message' => trim($action['label'].' untuk proposal "'.$proposal->title.'"'.($note !== '' ? '. Catatan: '.$note : '.')),
             'channel' => 'approval',
         ]);
     }

@@ -14,7 +14,7 @@ class Report extends Model
     protected $primaryKey = 'report_id';
 
     protected $fillable = [
-        'report_id',
+        'report_id', 'report_type', 'document_id', 'report_data', 'submitted_by', 'accepted_by', 'accepted_at', 'receipt_reference',
         'proposal_id',
         'progress',
         'description',
@@ -22,8 +22,13 @@ class Report extends Model
     ];
 
     protected $casts = [
-        'submitted_at' => 'datetime',
+        'submitted_at' => 'datetime', 'accepted_at' => 'datetime', 'report_data' => 'array',
     ];
+
+    public function document()
+    {
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
+    }
 
     public function proposal()
     {

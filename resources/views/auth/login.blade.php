@@ -23,6 +23,18 @@
             <div class="alert alert--success">{{ session('success') ?: request()->query('success') }}</div>
         @endif
 
+        @if(\App\Support\LocalAuthentication::available(request()))
+            <form method="POST" action="{{ route('auth.local.login') }}" class="form-stack">
+                @csrf
+                <h3>Login lokal sementara</h3>
+                <p>Gunakan akun pribadi yang dibuat untuk pemeriksaan aplikasi lokal.</p>
+                @if($errors->any())<div class="alert alert--danger">{{ $errors->first() }}</div>@endif
+                <label class="field">Email<input type="email" name="email" value="{{ old('email') }}" autocomplete="username" required maxlength="255"></label>
+                <label class="field">Password<input type="password" name="password" autocomplete="current-password" required></label>
+                <button class="btn btn--primary btn--block">Masuk dengan akun lokal</button>
+            </form>
+        @endif
+
         <a href="{{ route('sso.redirect') }}" class="btn btn--primary btn--block">Login dengan SSO</a>
 
         <div class="auth-links">

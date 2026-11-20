@@ -1,6 +1,6 @@
 <?php
 
-return [
+$config = [
     'required_roles' => [
         'super_admin' => 'Pengelola platform, pengaturan sistem, dan orkestrasi akses lintas peran.',
         'lppm_admin' => 'Eksekutor dan pengelola administratif LPPM, termasuk review dan tindak lanjut operasional.',
@@ -246,3 +246,26 @@ return [
         ],
     ],
 ];
+
+$config['required_roles'] += ['reviewer' => 'Penilai sesuai penugasan dan SK.', 'kepala_lppm' => 'Pengesahan arsip LPPM.', 'keuangan' => 'Pencatatan pencairan hibah.', 'rektor' => 'Pengesahan SK hibah.', 'wakil_rektor' => 'Rekomendasi reviewer.'];
+$config['required_permissions'] += ['lppm.grant.manage' => 'Kelola administrasi hibah.', 'lppm.grant.award' => 'Catat pengesahan SK Rektor.', 'lppm.grant.disburse' => 'Catat pencairan hibah.', 'lppm.grant.archive' => 'Sahkan arsip akhir hibah.'];
+foreach (['super_admin', 'lppm_admin', 'admin', 'admin_lppm'] as $role) {
+    $config['role_permission_fallbacks'][$role][] = 'lppm.grant.manage';
+}
+foreach (['rektor', 'kepala_lppm', 'keuangan', 'wakil_rektor'] as $role) {
+    $config['role_permission_fallbacks'][$role] = ['lppm.access', 'lppm.dashboard.view', 'lppm.proposal.view', 'lppm.proposal.view_all', 'lppm.document.view', 'lppm.report.view', 'lppm.notification.view'];
+}
+$config['role_permission_fallbacks']['rektor'][] = 'lppm.grant.award';
+$config['role_permission_fallbacks']['kepala_lppm'][] = 'lppm.grant.archive';
+$config['role_permission_fallbacks']['kepala_lppm'][] = 'lppm.grant.manage';
+$config['role_permission_fallbacks']['keuangan'][] = 'lppm.grant.disburse';
+$config['navigation'][] = ['label' => 'Hibah Internal', 'route' => 'grants.index', 'icon' => 'folder', 'permission' => 'lppm.proposal.view'];
+
+$config['required_roles']['sekretaris_lppm'] = 'Sekretaris/staf pelaksana sosialisasi jadwal LPPM.';
+$config['required_permissions']['lppm.grant.socialise'] = 'Mencatat sosialisasi jadwal dan panduan oleh sekretariat LPPM.';
+foreach (['staff', 'lppm_admin', 'kepala_lppm', 'super_admin', 'admin', 'admin_lppm'] as $role) {
+    $config['role_permission_fallbacks'][$role][] = 'lppm.grant.socialise';
+}
+$config['role_permission_fallbacks']['sekretaris_lppm'] = $config['role_permission_fallbacks']['staff'];
+
+return $config;

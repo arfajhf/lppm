@@ -12,8 +12,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-            DemoLppmSeeder::class,
-        ]);
+        // Akun dan profil pengguna disinkronkan melalui SSO institusi.
     }
 }

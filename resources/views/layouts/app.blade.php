@@ -25,29 +25,32 @@
                 </div>
             </div>
 
-            <div class="sidebar__section">
-                <p class="sidebar__caption">Navigasi</p>
-                <nav class="sidebar__nav">
-                    @foreach ($navigation as $item)
-                        <a href="{{ route($item['route']) }}" class="sidebar__link {{ request()->routeIs($item['route']) ? 'is-active' : '' }}">
-                            <span class="icon-chip icon-chip--{{ $item['icon'] }}"></span>
-                            <span>{{ $item['label'] }}</span>
-                        </a>
-                    @endforeach
-                </nav>
-            </div>
+            <details class="sidebar__menu" id="sidebar-menu" open>
+                <summary class="sidebar__toggle">Menu navigasi <span aria-hidden="true">⌄</span></summary>
+                <div class="sidebar__section">
+                    <p class="sidebar__caption">Navigasi</p>
+                    <nav class="sidebar__nav" aria-label="Navigasi utama">
+                        @foreach ($navigation as $item)
+                            <a href="{{ route($item['route']) }}" class="sidebar__link {{ request()->routeIs($item['route']) ? 'is-active' : '' }}">
+                                <span class="icon-chip icon-chip--{{ $item['icon'] }}"></span>
+                                <span>{{ $item['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </nav>
+                </div>
 
-            <div class="sidebar__card">
-                <p class="sidebar__caption">Workflow</p>
-                <ul class="timeline-list">
-                    <li>Draft</li>
-                    <li>Submitted</li>
-                    <li>Review</li>
-                    <li>Revision</li>
-                    <li>Approved</li>
-                    <li>Completed</li>
-                </ul>
-            </div>
+                <div class="sidebar__card">
+                    <p class="sidebar__caption">Workflow</p>
+                    <ul class="timeline-list">
+                        <li>Draft</li>
+                        <li>Submitted</li>
+                        <li>Review</li>
+                        <li>Revision</li>
+                        <li>Approved</li>
+                        <li>Completed</li>
+                    </ul>
+                </div>
+            </details>
         </aside>
 
         <div class="app-main">

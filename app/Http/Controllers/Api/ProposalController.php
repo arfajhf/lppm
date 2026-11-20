@@ -2,42 +2,39 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesLppmProposalAccess;
 use App\Http\Controllers\Controller;
+use App\Models\GrantCall;
 use App\Models\Proposal;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
-/**
- * Menyediakan endpoint API dasar untuk daftar dan pembuatan proposal.
- */
 class ProposalController extends Controller
 {
-    /**
-     * Mengembalikan daftar proposal terbaru beserta relasi utama untuk konsumsi API.
-     */
-    public function index()
+    use AuthorizesLppmProposalAccess;
+
+    public function index(Request $r)
     {
-        return response()->json(
-            Proposal::with(['user', 'reviews'])->latest()->paginate(10)
-        );
+        abort_unless($r->user()->hasLppmPermission('lppm.proposal.view'), 403);
+
+        return response()->json($this->scopeProposalVisibility(Proposal::with('reviews'))->latest()->paginate(10));
     }
 
-    /**
-     * Memvalidasi lalu menyimpan proposal baru melalui antarmuka API.
-     */
-    public function store(Request $request)
+    public function store(Request $r)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:100'],
-            'scheme' => ['required', 'string', 'max:100'],
-            'user_id' => ['required', 'exists:users,user_id'],
-            'status' => ['required', 'string', 'max:30'],
-            'year' => ['required', 'digits:4'],
-            'summary' => ['nullable', 'string'],
-        ]);
+        abort_unless($r->user()->hasLppmPermission('lppm.proposal.create'), 403);
+        $v = $r->validate(['title' => 'required|string|max:255', 'type' => ['required', Rule::in(['Penelitian Mandiri', 'Penelitian Hibah', 'Pengabdian Mandiri', 'Pengabdian Hibah'])], 'scheme' => 'required|string|max:100', 'year' => 'required|digits:4', 'summary' => 'nullable|string', 'grant_call_id' => 'nullable|exists:grant_calls,id', 'user_id' => 'prohibited', 'status' => 'prohibited']);
+        $hibah = in_array($v['type'], ['Penelitian Hibah', 'Pengabdian Hibah']);
+        if ($hibah) {
+            $c = GrantCall::find($v['grant_call_id'] ?? null);
+            if (! $c || $c->purpose !== 'grant' || ! $c->isOpen()) {
+                throw ValidationException::withMessages(['grant_call_id' => 'Pilih periode hibah yang sedang dibuka.']);
+            }
+        } else {
+            unset($v['grant_call_id']);
+        }
 
-        $proposal = Proposal::create($validated);
-
-        return response()->json($proposal, 201);
+        return response()->json(Proposal::create($v + ['user_id' => $r->user()->user_id, 'status' => 'draft', 'grant_stage' => $hibah ? 'draft' : null]), 201);
     }
 }

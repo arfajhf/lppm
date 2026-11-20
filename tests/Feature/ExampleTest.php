@@ -36,6 +36,9 @@ class ExampleTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Akses akun Anda');
         $response->assertSee('Login dengan SSO');
+        $response->assertDontSee('Role demo');
+        $response->assertDontSee('Mode latihan lokal');
+        $this->post('/local-preview/login', ['role' => 'lppm_admin'])->assertNotFound();
     }
 
     public function test_authenticated_user_can_access_dashboard(): void
@@ -52,9 +55,10 @@ class ExampleTest extends TestCase
 
     public function test_sso_callback_logs_user_into_the_app(): void
     {
+        config(['services.sso.url' => 'http://localhost/umb-sso/public']);
         Http::fake([
             'http://localhost/umb-sso/public/api/sso/token' => Http::response([
-                'access_token' => 'token-demo',
+                'access_token' => 'token-test',
                 'user' => [
                     'user_id' => 'sso-123',
                     'username' => 'dosen1',
@@ -74,7 +78,7 @@ class ExampleTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->get(route('sso.callback', ['code' => 'demo-code']));
+        $response = $this->withSession(['sso_state' => 'test-state'])->get(route('sso.callback', ['code' => 'test-code', 'state' => 'test-state']));
 
         $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();

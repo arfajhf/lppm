@@ -16,3 +16,12 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+.env.testing
+.env.mysql-preview
+.env.pre-mysql
+
+# Local QA artifacts and temporary scripts
+/output/
+/tmp/
+.phpunit.result.cache

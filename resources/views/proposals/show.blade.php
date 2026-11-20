@@ -5,6 +5,11 @@
 @section('page_title', $proposal->title)
 
 @section('content')
+    @if(!$proposal->grant_stage && in_array($proposal->type,['Penelitian Hibah','Pengabdian Hibah']) && ($proposal->user_id===auth()->id() || auth()->user()->hasLppmPermission('lppm.grant.manage')))
+    <section class="surface-card"><h2>Masukkan proposal lama ke alur SOP hibah</h2><p>Proposal akan dimulai kembali dari draft. Berkas dan riwayat lama tetap tersimpan.</p>
+    <form method="POST" action="{{ route('grants.enroll',$proposal) }}" class="form-stack">@csrf
+    <label class="field">Periode hibah<select name="grant_call_id" required>@foreach(\App\Models\GrantCall::where('purpose','grant')->where('published',true)->get()->filter(fn($c)=>$c->isOpen()) as $call)<option value="{{ $call->id }}">{{ $call->title }}</option>@endforeach</select></label><button class="btn btn--primary">Mulai alur SOP hibah</button></form></section>
+    @endif
     <section class="content-grid">
         <article class="surface-card">
             <div class="section-heading">
