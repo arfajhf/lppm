@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Services\SSOConfigService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -19,13 +19,13 @@ class AuthController extends Controller
         $clientLoginUrl = route('login');
         $ssoBaseUrl = rtrim((string) SSOConfigService::getUrl(), '/');
 
-        $registerUrl = $ssoBaseUrl . '/register?' . http_build_query([
+        $registerUrl = $ssoBaseUrl.'/register?'.http_build_query([
             'client_id' => SSOConfigService::getClientId(),
             'redirect_uri' => SSOConfigService::getRedirect(),
             'client' => $clientLoginUrl,
         ]);
 
-        $forgotPasswordUrl = $ssoBaseUrl . '/forgot-password?' . http_build_query([
+        $forgotPasswordUrl = $ssoBaseUrl.'/forgot-password?'.http_build_query([
             'client_id' => SSOConfigService::getClientId(),
             'redirect_uri' => SSOConfigService::getRedirect(),
             'client' => $clientLoginUrl,
@@ -39,13 +39,18 @@ class AuthController extends Controller
      */
     public function destroy(Request $request)
     {
+        $local = $request->session()->get('authentication_method') === 'local';
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        if ($local) {
+            return redirect()->route('login');
+        }
+
         return redirect(
-            rtrim((string) config('services.sso.url'), '/') . '/logout?redirect=' . urlencode(route('login'))
+            rtrim((string) config('services.sso.url'), '/').'/logout?redirect='.urlencode(route('login'))
         );
     }
 }

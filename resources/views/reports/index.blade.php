@@ -27,7 +27,9 @@
             @forelse ($reports as $report)
                 <div class="table-row">
                     <div>
-                        <strong>{{ $report->proposal?->title }}</strong>
+                        <strong>{{ $report->proposal?->title }}</strong><span>{{ ['progress70'=>'Laporan kemajuan 70%','final100'=>'Laporan akhir','finance100'=>'Realisasi anggaran 100%','outputs'=>'Capaian luaran','revised_final'=>'Laporan final diperbaiki'][$report->report_type] ?? 'Laporan progres' }}</span>
+@if($report->document)<a href="{{ route('documents.download',$report->document) }}">Unduh berkas</a>@endif
+@if($report->accepted_at)<span>Diterima {{ $report->accepted_at->format('d M Y') }} · {{ $report->receipt_reference }}</span>@endif
                         <span>{{ $report->description ?: 'Belum ada deskripsi progres.' }}</span>
                     </div>
                     <div class="table-row__meta">

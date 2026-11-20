@@ -13,7 +13,7 @@
         </div>
 
         <div class="helper-card">
-            Setelah disimpan, proposal ini akan dikirim ke <strong>{{ $submissionTarget }}</strong>.
+            Proposal hibah disimpan sebagai draft. Ajukan pengesahan Dekan melalui halaman alur hibah.
         </div>
 
         @if ($errors->any())
@@ -41,6 +41,14 @@
                 <input type="text" name="scheme" value="{{ old('scheme') }}" placeholder="Skema kompetitif / kolaboratif" required>
             </label>
 
+            <label class="field">
+                <span>Periode hibah (wajib untuk jenis Hibah)</span>
+                <select name="grant_call_id"><option value="">Pilih periode</option>
+                @foreach (\App\Models\GrantCall::where('purpose','grant')->where('published',true)->get()->filter(fn($c)=>$c->isOpen()) as $call)
+                    <option value="{{ $call->id }}" @selected(old('grant_call_id') == $call->id)>{{ $call->title }}</option>
+                @endforeach
+                </select>
+            </label>
             <label class="field">
                 <span>Tahun</span>
                 <input type="number" name="year" value="{{ old('year', now()->year) }}" min="2020" max="2100" required>

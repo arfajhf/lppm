@@ -6,26 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Review;
 use Illuminate\Http\Request;
 
-/**
- * Menyediakan endpoint API untuk pencatatan hasil review proposal.
- */
 class ReviewController extends Controller
 {
-    /**
-     * Memvalidasi payload dan menyimpan entri review baru melalui API.
-     */
-    public function store(Request $request)
+    public function store(Request $r)
     {
-        $validated = $request->validate([
-            'proposal_id' => ['required', 'exists:proposals,proposal_id'],
-            'reviewer_id' => ['required', 'exists:users,user_id'],
-            'score' => ['nullable', 'numeric', 'between:0,100'],
-            'comment' => ['nullable', 'string'],
-            'status' => ['required', 'string', 'max:30'],
-        ]);
+        abort_unless($r->user()->hasLppmPermission('lppm.review.score'), 403);
+        $v = $r->validate(['review_id' => 'required|exists:reviews,review_id', 'score' => 'required|numeric|between:0,100', 'comment' => 'required|string|max:10000', 'reviewer_id' => 'prohibited', 'status' => 'prohibited', 'proposal_id' => 'prohibited']);
+        $review = Review::findOrFail($v['review_id']);
+        abort_unless($review->reviewer_id === $r->user()->user_id && ! $review->proposal->grant_stage && $review->proposal->status === 'review', 403);
+        $review->update(['score' => $v['score'], 'comment' => $v['comment'], 'status' => 'completed']);
 
-        $review = Review::create($validated);
-
-        return response()->json($review, 201);
+        return response()->json($review);
     }
 }

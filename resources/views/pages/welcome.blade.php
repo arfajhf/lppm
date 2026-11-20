@@ -16,6 +16,7 @@
                     Sistem ini dibangun berdasarkan blueprint LPPM untuk memusatkan proposal, dokumen, review, laporan, dan notifikasi dalam satu pengalaman kerja yang modern dan mudah diperluas.
                 </p>
                 <div class="hero__actions">
+                    <a href="{{ route('grants.announcements') }}" class="btn btn--secondary">Pengumuman hibah dan reviewer</a>
                     <a href="{{ route('login') }}" class="btn btn--primary">Masuk ke Sistem</a>
                 </div>
             </div>

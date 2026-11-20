@@ -12,19 +12,28 @@ class Proposal extends Model
     use UsesUuid;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PENDING_KAPRODI = 'pending_kaprodi';
+
     public const STATUS_PENDING_DEKAN = 'pending_dekan';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_REVIEW = 'review';
+
     public const STATUS_REVISION = 'revision';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_COMPLETED = 'completed';
 
     protected $primaryKey = 'proposal_id';
 
     protected $fillable = [
         'proposal_id',
+        'registration_number', 'grant_call_id', 'grant_stage', 'revision_stage', 'grant_amount', 'stage_due_at',
         'title',
         'type',
         'scheme',
@@ -47,12 +56,23 @@ class Proposal extends Model
     ];
 
     protected $casts = [
+        'stage_due_at' => 'datetime',
         'submitted_at' => 'datetime',
         'kaprodi_approved_at' => 'datetime',
         'dekan_approved_at' => 'datetime',
         'lppm_received_at' => 'datetime',
         'last_decision_at' => 'datetime',
     ];
+
+    public function grantCall()
+    {
+        return $this->belongsTo(GrantCall::class);
+    }
+
+    public function grantRecords()
+    {
+        return $this->hasMany(GrantRecord::class, 'proposal_id', 'proposal_id');
+    }
 
     public function user()
     {
