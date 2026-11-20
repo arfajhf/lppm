@@ -29,11 +29,11 @@ npm -v
 ```bash
 git clone https://github.com/arfajhf/lppm.git
 cd lppm
-git checkout codex/hibah-qa-laravel10-20261120
+git checkout full-request-done-aplication
 git branch --show-current
 ```
 
-Branch QA untuk perubahan ini adalah `codex/hibah-qa-laravel10-20261120`; branch `main` tetap terpisah. Jika tim memakai branch/tag lain, checkout nama versi yang benar-benar sudah dipublikasikan sebelum instalasi. Jangan menganggap seluruh perubahan lokal saat ini sudah ada pada branch default GitHub.
+Branch QA untuk perubahan ini adalah `full-request-done-aplication`; branch `main` tetap terpisah. Jika tim memakai branch/tag lain, checkout nama versi yang benar-benar sudah dipublikasikan sebelum instalasi. Jangan menganggap seluruh perubahan lokal saat ini sudah ada pada branch default GitHub.
 
 ```bash
 composer install
